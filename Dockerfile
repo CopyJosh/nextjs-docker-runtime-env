@@ -2,6 +2,10 @@
 FROM node:16-alpine AS deps
 # Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
 RUN apk add --no-cache libc6-compat
+
+# Install BASH to make our lives easier for entrypoint.sh...
+RUN apk add bash
+
 WORKDIR /app
 
 # Install dependencies based on the preferred package manager
@@ -16,32 +20,50 @@ RUN \
 
 # Rebuild the source code only when needed
 FROM node:16-alpine AS builder
+
+# Install BASH to make our lives easier for entrypoint.sh...
+RUN apk add bash
+
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Next.js collects completely anonymous telemetry data about general usage.
-# Learn more here: https://nextjs.org/telemetry
-# Uncomment the following line in case you want to disable telemetry during the build.
-# ENV NEXT_TELEMETRY_DISABLED 1
 
-RUN yarn build
-
-# If using npm comment out above and use below instead
-# RUN npm run build
+# We have to declare some placeholder value, otherwise process.env.* will be undefined
+# at build time, and there will be no way to find/replace the runtime value.
+# It would be better to dynamically generate this, and perhaps even better to use a
+# docker-compose.yml to list these out in a more user friendly way...
+RUN \
+  NEXT_RUNTIME_CLIENT_VARIABLE=APP_NEXT_RUNTIME_CLIENT_VARIABLE \
+  NEXT_RUNTIME_CLIENT_UNSET_VARIABLE=APP_NEXT_RUNTIME_CLIENT_UNSET_VARIABLE \
+  NEXT_RUNTIME_PRIVATE_SERVER_VARIABLE=APP_NEXT_RUNTIME_PRIVATE_SERVER_VARIABLE \
+  NEXT_RUNTIME_SERVER_UNSET_VARIABLE=APP_NEXT_RUNTIME_SERVER_UNSET_VARIABLE \
+  yarn build
 
 # Production image, copy all the files and run next
 FROM node:16-alpine AS runner
+
+# Install BASH to make our lives easier for entrypoint.sh...
+RUN apk add bash
+
 WORKDIR /app
 
 ENV NODE_ENV production
-# Uncomment the following line in case you want to disable telemetry during runtime.
-# ENV NEXT_TELEMETRY_DISABLED 1
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 COPY --from=builder /app/public ./public
+
+############
+# Permissions to write files when executing entrypoint
+RUN chown -R nextjs:nodejs /app
+
+# Handle Entrypoint
+COPY --from=builder --chown=nextjs:nodejs /app/entrypoint.sh ./entrypoint.sh
+RUN chmod +x ./entrypoint.sh
+ENTRYPOINT ["/app/entrypoint.sh"]
+############
 
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing

@@ -2,7 +2,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build"
+    "build": "next build",
+    "debug": "NODE_OPTIONS='--inspect' next dev"
   },
   "dependencies": {
     "next": "latest",
