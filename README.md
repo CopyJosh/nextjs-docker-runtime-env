@@ -4,6 +4,15 @@
 
 This example demonstrates a method for using environment specific, runtime variables with Docker containers. The problem this solves is that Next.js violates the "build once, deploy anywhere" paradigm because environment variables are applied at build time. Meaning, in order to apply environment variables for a development environment and a production environment, one has to build two separate Docker images.
 
+## How to use
+
+1. [Install Docker](https://docs.docker.com/get-docker/) on your machine.
+2. Build your container: `docker build -t nextjs-docker .`
+3. Run your container with `-e` or `--env` flags:
+```bash
+docker run -p 3000:3000 -e RUNTIME_CLIENT_VARIABLE=runtime_client_var -e RUNTIME_PRIVATE_SERVER_VARIABLE=runtime_server_var nextjs-docker
+```
+
 ## How it works
 
 The solution presented here uses the `ENV` command in the `Dockerfile` to replace predefined `NEXT_RUNTIME_` variables with `APP_NEXT_RUNTIME_`. This is to prevent Next.js from setting the values at build time when it digests all the `process.env.*` variables.
