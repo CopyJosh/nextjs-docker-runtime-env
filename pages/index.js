@@ -1,28 +1,10 @@
 import Head from 'next/head'
 import styles from '../styles/Home.module.css'
-import getConfig from 'next/config'
-import { publicRuntimeConfig as libClientRuntime } from '../lib/client-runtime'
 
-// Only holds serverRuntimeConfig and publicRuntimeConfig
-const { serverRuntimeConfig, publicRuntimeConfig } = getConfig()
-
-// Will only be available on the server-side
-console.log('server* should be undefined in the browser');
-console.log('server', serverRuntimeConfig.server)
-console.log('serverBuildtime', serverRuntimeConfig.serverBuildtime)
-console.log('serverRuntime', serverRuntimeConfig.serverRuntime)
-
-// Will be available on both server-side and client-side
-console.log('client* should be defined in the browser');
-console.log('client', publicRuntimeConfig.client)
-console.log('clientBuildtime', publicRuntimeConfig.clientBuildtime)
-console.log('clientRuntime', publicRuntimeConfig.clientRuntime)
-
-console.warn(libClientRuntime);
 
 const Code = (p) => <code className={styles.inlineCode} {...p} />
 
-export default function Home() {
+export default function Home({ publicRuntimeConfig }) {
   return (
     <div className={styles.container}>
       <Head>
@@ -61,26 +43,9 @@ export default function Home() {
           <br />
           (Nothing to see here, or something went wrong)
         </p>
-        <table>
-          <tbody>
-            {Object.entries(serverRuntimeConfig).map(([key, value]) => (
-              <tr key={key}>
-                <td align="right">{key}</td>
-                <td>=</td>
-                <td align="left">{value}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
         <h2>
           <u>Environment Variables</u>
         </h2>
-
-        <p className={styles.description}>
-          FROM_ENV_FILE:{' '}
-          <Code>{process.env.FROM_ENV_FILE || 'Nothing to see here'}</Code>
-        </p>
 
         <p className={styles.description}>
           NEXT_PUBLIC_FROM_ENV_FILE:{' '}
@@ -141,8 +106,8 @@ export default function Home() {
   )
 }
 
-export async function getServerSideProps(ctx) {
+export async function getServerSideProps() {
   return {
-    props: {},
+    props: { publicRuntimeConfig: require('../lib/runtime-config').getPublicRuntimeConfig() },
   }
 }
